@@ -33,8 +33,9 @@ namespace YouTubeSearch.Standard.Controllers
         /// <param name="config"> config instance. </param>
         /// <param name="httpClient"> httpClient. </param>
         /// <param name="authManagers"> authManager. </param>
-        internal YoutubeController(IConfiguration config, IHttpClient httpClient, IDictionary<string, IAuthManager> authManagers)
-            : base(config, httpClient, authManagers)
+        /// <param name="httpCallBack"> httpCallBack. </param>
+        internal YoutubeController(IConfiguration config, IHttpClient httpClient, IDictionary<string, IAuthManager> authManagers, HttpCallBack httpCallBack = null)
+            : base(config, httpClient, authManagers, httpCallBack)
         {
         }
 
@@ -169,11 +170,20 @@ namespace YouTubeSearch.Standard.Controllers
             // prepare the API call request to fetch the response.
             HttpRequest httpRequest = this.GetClientInstance().Get(queryBuilder.ToString(), headers, queryParameters: queryParams);
 
+            if (this.HttpCallBack != null)
+            {
+                this.HttpCallBack.OnBeforeHttpRequestEventHandler(this.GetClientInstance(), httpRequest);
+            }
+
             httpRequest = await this.AuthManagers["global"].ApplyAsync(httpRequest).ConfigureAwait(false);
 
             // invoke request and get response.
             HttpStringResponse response = await this.GetClientInstance().ExecuteAsStringAsync(httpRequest, cancellationToken: cancellationToken).ConfigureAwait(false);
             HttpContext context = new HttpContext(httpRequest, response);
+            if (this.HttpCallBack != null)
+            {
+                this.HttpCallBack.OnAfterHttpResponseEventHandler(this.GetClientInstance(), response);
+            }
 
             if (response.StatusCode == 400)
             {

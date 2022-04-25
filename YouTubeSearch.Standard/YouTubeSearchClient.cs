@@ -33,6 +33,7 @@ namespace YouTubeSearch.Standard
 
         private readonly IDictionary<string, IAuthManager> authManagers;
         private readonly IHttpClient httpClient;
+        private readonly HttpCallBack httpCallBack;
         private readonly BearerAuthManager bearerAuthManager;
 
         private readonly Lazy<YoutubeController> youtube;
@@ -42,15 +43,17 @@ namespace YouTubeSearch.Standard
             string accessToken,
             IDictionary<string, IAuthManager> authManagers,
             IHttpClient httpClient,
+            HttpCallBack httpCallBack,
             IHttpClientConfiguration httpClientConfiguration)
         {
             this.Environment = environment;
+            this.httpCallBack = httpCallBack;
             this.httpClient = httpClient;
             this.authManagers = (authManagers == null) ? new Dictionary<string, IAuthManager>() : new Dictionary<string, IAuthManager>(authManagers);
             this.HttpClientConfiguration = httpClientConfiguration;
 
             this.youtube = new Lazy<YoutubeController>(
-                () => new YoutubeController(this, this.httpClient, this.authManagers));
+                () => new YoutubeController(this, this.httpClient, this.authManagers, this.httpCallBack));
 
             if (this.authManagers.ContainsKey("global"))
             {
@@ -92,6 +95,11 @@ namespace YouTubeSearch.Standard
         internal IHttpClient HttpClient => this.httpClient;
 
         /// <summary>
+        /// Gets http callback.
+        /// </summary>
+        internal HttpCallBack HttpCallBack => this.httpCallBack;
+
+        /// <summary>
         /// Gets the credentials to use with BearerAuth.
         /// </summary>
         private IBearerAuthCredentials BearerAuthCredentials => this.bearerAuthManager;
@@ -124,6 +132,7 @@ namespace YouTubeSearch.Standard
             Builder builder = new Builder()
                 .Environment(this.Environment)
                 .AccessToken(this.BearerAuthCredentials.AccessToken)
+                .HttpCallBack(this.httpCallBack)
                 .HttpClient(this.httpClient)
                 .AuthManagers(this.authManagers)
                 .HttpClientConfig(config => config.Build());
@@ -185,6 +194,7 @@ namespace YouTubeSearch.Standard
             private IDictionary<string, IAuthManager> authManagers = new Dictionary<string, IAuthManager>();
             private HttpClientConfiguration.Builder httpClientConfig = new HttpClientConfiguration.Builder();
             private IHttpClient httpClient;
+            private HttpCallBack httpCallBack;
 
             /// <summary>
             /// Sets credentials for BearerAuth.
@@ -247,6 +257,17 @@ namespace YouTubeSearch.Standard
             }
 
             /// <summary>
+            /// Sets the HttpCallBack for the Builder.
+            /// </summary>
+            /// <param name="httpCallBack"> http callback. </param>
+            /// <returns>Builder.</returns>
+            internal Builder HttpCallBack(HttpCallBack httpCallBack)
+            {
+                this.httpCallBack = httpCallBack;
+                return this;
+            }
+
+            /// <summary>
             /// Creates an object of the YouTubeSearchClient using the values provided for the builder.
             /// </summary>
             /// <returns>YouTubeSearchClient.</returns>
@@ -259,6 +280,7 @@ namespace YouTubeSearch.Standard
                     this.accessToken,
                     this.authManagers,
                     this.httpClient,
+                    this.httpCallBack,
                     this.httpClientConfig.Build());
             }
         }
